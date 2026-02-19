@@ -17,8 +17,12 @@ pipeline {
                 sh '''
                 docker network create app-network || true
                 docker rm -f backend1 backend2 || true
+
                 docker run -d --name backend1 --network app-network backend-app
                 docker run -d --name backend2 --network app-network backend-app
+
+                # Give backend time to start listening on 8080
+                sleep 5
                 '''
             }
         }
@@ -34,7 +38,14 @@ pipeline {
                   -p 80:80 \
                   nginx
 
+                # Wait before copying config
+                sleep 3
+
                 docker cp nginx/default.conf nginx-lb:/etc/nginx/conf.d/default.conf
+
+                # Test nginx config before reload
+                docker exec nginx-lb nginx -t
+
                 docker exec nginx-lb nginx -s reload
                 '''
             }
